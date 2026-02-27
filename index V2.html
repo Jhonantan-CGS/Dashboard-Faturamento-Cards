@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Central de Faturamento - Operações do Dia</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap');
+
+  :root {
+    --primary: #1E3A8A; 
+    --primary-hover: #1E40AF;
+    --secondary: #2563EB; 
+    --bg-app: #F1F5F9; 
+    --bg-card: #FFFFFF;
+    --bg-input: #F8FAFC;
+    --border: #E2E8F0;
+    --text-main: #1E293B;
+    --text-muted: #64748B;
+    --text-white: #FFFFFF;
+    --success: #10B981;
+    --success-bg: #D1FAE5;
+    --success-text: #065F46;
+    --danger: #DC2626; 
+    --danger-bg: #FEE2E2;
+    --danger-text: #991B1B;
+    --warning: #F59E0B;
+    --warning-bg: #FEF3C7;
+    --warning-text: #92400E;
+    --radius-lg: 12px;
+    --radius: 8px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    --shadow-danger: 0 0 15px rgba(220, 38, 38, 0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; font-size: 16px; }
+  
+  body { 
+    background-color: var(--bg-app); 
+    color: var(--text-main); 
+    font-family: 'Inter', system-ui, sans-serif; 
+    -webkit-font-smoothing: antialiased; 
+    padding-top: 130px; 
+    padding-bottom: 80px; 
+  }
+
+  /* BARRA DE STATUS DE REDE */
+  #networkStatus {
+    position: fixed; top: 0; left: 0; width: 100%; z-index: 10000;
+    text-align: center; padding: 6px; font-family: 'Montserrat', sans-serif;
+    font-size: 13px; font-weight: 700; color: white; transition: all 0.3s ease;
+  }
+  .network-online { background-color: var(--success); }
+  .network-offline { background-color: var(--danger); animation: pulse-bg 2s infinite; }
+  
+  @keyframes pulse-bg { 0% { background-color: var(--danger); } 50% { background-color: #991B1B; } 100% { background-color: var(--danger); } }
+
+  /* HEADER */
+  header { 
+    position: fixed; top: 30px; left: 0; width: 100%; 
+    background: var(--primary); color: var(--text-white); 
+    border-bottom: 1px solid rgba(255,255,255,0.1); 
+    z-index: 100; display: flex; flex-direction: column; 
+    box-shadow: var(--shadow-md); transition: top 0.3s;
+  }
+  body.offline-mode header { top: 30px; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
+  .header-brand { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 42px; height: 42px; background: var(--text-white); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: var(--shadow-sm); }
+  .brand-text h1 { font-family: 'Montserrat', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+  .brand-text p { font-size: 11px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.5px; color: #DBEAFE; }
+
+  .header-actions { display: flex; gap: 12px; }
+  
+  button { 
+    font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 12px; 
+    min-height: 42px; padding: 0 16px; border-radius: var(--radius); border: none; 
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease; 
+  }
+  .btn-header { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: var(--text-white); }
+  .btn-header:hover { background: rgba(255,255,255,0.2); }
+  .btn-notif { background: var(--warning); color: white; border: 1px solid #D97706; }
+  .btn-notif.active { background: var(--success); border-color: #059669; }
+
+  /* CONTAINER E INFO */
+  .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; flex-direction: column; gap: 24px; }
+  
+  .dashboard-info {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--bg-card); padding: 20px 24px; border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md); border: 1px solid var(--border);
+    border-left: 6px solid var(--secondary); /* Destaque lateral moderno */
+  }
+  
+  /* TÍTULO MODERNO E ARROJADO */
+  .dashboard-info h2 { 
+    font-family: 'Montserrat', sans-serif; 
+    font-size: 22px; 
+    font-weight: 900; 
+    text-transform: uppercase;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 0.5px;
+    margin: 0;
+  }
+  .dashboard-info span { font-size: 14px; font-weight: 700; color: var(--text-muted); background: var(--bg-input); padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* CARDS E HIERARQUIA VISUAL */
+  .card { 
+    background: var(--bg-card); border: 1px solid var(--border); 
+    border-radius: var(--radius-lg); overflow: hidden; 
+    box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;
+    display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+  
+  .card.card-bloqueado {
+    border: 2px solid var(--danger);
+    box-shadow: var(--shadow-danger);
+  }
+
+  .card-header { 
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+    padding: 16px 20px; background: var(--bg-input); border-bottom: 1px solid var(--border); 
+  }
+  
+  .card-placa-wrapper { display: flex; align-items: center; gap: 12px; }
+  .card-placa { 
+    font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 900; 
+    color: var(--primary); background: #FFFFFF; border: 2px solid var(--primary); 
+    border-radius: 8px; padding: 6px 16px; letter-spacing: 2px; box-shadow: var(--shadow-sm);
+  }
+  
+  .badge { padding: 6px 12px; border-radius: 6px; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-aprovado { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success); }
+  .badge-bloqueado { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger); font-size: 13px; }
+  .badge-pendente { background: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning); }
+  .badge-info { background: #E0E7FF; color: var(--secondary); border: 1px solid #818CF8; }
+
+  .card-meta { padding: 14px 20px; display: flex; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-muted); background: #fdfdfd; }
+  .meta-item { display: flex; align-items: center; gap: 6px; }
+  .meta-item strong { color: var(--text-main); font-weight: 700; }
+
+  .card-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; background: #FFFFFF; }
+  
+  /* AGRUPAMENTO POR PEDIDO */
+  .pedido-group {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .pedido-header {
+    background: var(--bg-app);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--primary-hover);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .produto-item { 
+    padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .produto-item:last-child { border-bottom: none; }
+  
+  .produto-nome { font-size: 18px; font-weight: 800; color: var(--text-main); line-height: 1.2; }
+  
+  .destaques-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;
+  }
+  
+  .destaque-box {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 12px; border-radius: var(--radius);
+    border: 1px solid;
+  }
+  .destaque-lote { background: #F8FAFC; border-color: #CBD5E1; }
+  .destaque-qtd { background: var(--success-bg); border-color: #6EE7B7; }
+  
+  .destaque-label { font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; }
+  .destaque-lote .destaque-label { color: #475569; }
+  .destaque-qtd .destaque-label { color: var(--success-text); }
+  
+  .destaque-valor { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 900; }
+  .destaque-lote .destaque-valor { color: var(--primary); }
+  .destaque-qtd .destaque-valor { color: var(--success-text); }
+
+  .produto-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .status-linha { font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; }
+  .status-linha.aprovado { color: var(--success-text); background: var(--success-bg); }
+  .status-linha.bloqueado { color: var(--danger-text); background: var(--danger-bg); }
+  
+  @keyframes pulse-avaria { 0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
+  .tag-perda { background: var(--danger); color: #FFFFFF; border: 1px solid #B91C1C; animation: pulse-avaria 2s infinite; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+
+  /* OVERLAY DE LOADING E EMPTY STATE */
+  #loaderOverlay { display: flex; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 9999; backdrop-filter: blur(4px); flex-direction: column; align-items: center; justify-content: center; gap: 20px; transition: opacity 0.3s; }
+  .spinner-large { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.2); border-top-color: var(--secondary); border-radius: 50%; animation: spin 1s linear infinite; }
+  #loaderOverlay p { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 600; color: white; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+
+  .empty-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 12px; color: var(--text-muted); background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border); text-align: center; }
+  .empty-state span { font-size: 48px; }
+
+  /* TERMINAL DEBUG PARA O DASHBOARD */
+  .btn-debug { position: fixed; bottom: 24px; right: 24px; z-index: 10000; border-radius: 50px; box-shadow: var(--shadow-md); background: #1E293B; border: 1px solid #334155; color: white; }
+  .debug-panel { position: fixed; top: 0; right: -450px; width: 450px; max-width: 100vw; height: 100vh; background: #0F172A; border-left: 1px solid #334155; z-index: 10001; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.5); color: #F8FAFC; }
+  .debug-panel.open { right: 0; }
+  .debug-header { padding: 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; background: #1E293B; }
+  .debug-header h3 { font-family: 'Montserrat', sans-serif; font-size: 16px; color: #F59E0B; }
+  .debug-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .debug-box { background: #0B0F19; border: 1px solid #334155; border-radius: var(--radius); padding: 12px; }
+  .debug-box h4 { color: #94A3B8; margin-bottom: 8px; border-bottom: 1px dashed #334155; padding-bottom: 4px; }
+  .log-entry { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); word-break: break-word;}
+  .log-time { color: #64748B; margin-right: 8px; }
+</style>
+</head>
+<body>
+
+  <div id="networkStatus" class="network-online">🟢 Sistema Online - Conectado</div>
+
+  <div id="loaderOverlay">
+    <div class="spinner-large"></div>
+    <p id="loaderText">Iniciando Dashboard...</p>
+  </div>
+
+  <header>
+    <div class="header-top">
+      <div class="header-brand">
+        <div class="logo-icon">🧾</div>
+        <div class="brand-text">
+          <h1>Central de Faturamento</h1>
+          <p id="abaAtualLabel">Conectando ao banco de dados...</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnNotif" class="btn-notif" onclick="dashboardController.solicitarNotificacoes()">🔔 Notificações (Desativado)</button>
+        <button class="btn-header" onclick="dashboardController.carregarDados(false)">🔄 ATUALIZAR AGORA</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="dashboard-info">
+      <h2 id="tituloDashboard">Carregamentos - Carregando...</h2>
+      <span id="contadorOperacoes">Total de caminhões: 0</span>
+    </div>
+
+    <div class="cards-grid" id="cardsContainer">
+      </div>
+  </div>
+
+  <button class="btn-debug" onclick="debugEngine.togglePanel()">🐞 Terminal</button>
+  <div class="debug-panel" id="debugPanel">
+    <div class="debug-header">
+      <h3>🛠 TERMINAL DE DIAGNÓSTICO</h3>
+      <button class="btn-header" style="min-height: 36px; padding: 0 12px; font-size: 12px;" onclick="debugEngine.togglePanel()">FECHAR ✖</button>
+    </div>
+    <div class="debug-content">
+      <div class="debug-box">
+        <h4>1️⃣ Status da API</h4>
+        <div id="dbgStatus">A aguardar inicialização...</div>
+      </div>
+      <div class="debug-box" style="flex: 1; display: flex; flex-direction: column;">
+        <h4>2️⃣ Log Cronológico</h4>
+        <div id="dbgLogConsole" style="overflow-y: auto; flex: 1; max-height: 500px; background: #0B0F19; padding: 12px; border-radius: 4px;"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ==========================================
+// MONITOR DE REDE (ONLINE / OFFLINE)
+// ==========================================
+const networkMonitor = {
+  init() {
+    window.addEventListener('online', this.updateStatus);
+    window.addEventListener('offline', this.updateStatus);
+    this.updateStatus();
+  },
+  updateStatus() {
+    const banner = document.getElementById('networkStatus');
+    if (navigator.onLine) {
+      banner.className = 'network-online';
+      banner.innerText = '🟢 Conexão restabelecida. Sistema Online.';
+      document.body.classList.remove('offline-mode');
+      setTimeout(() => { if(navigator.onLine) banner.innerText = '🟢 Sistema Online'; }, 3000);
+    } else {
+      banner.className = 'network-offline';
+      banner.innerText = '🔴 Conexão perdida. Operando em modo offline.';
+      document.body.classList.add('offline-mode');
+    }
+  }
+};
+
+// ==========================================
+// MÓDULO TERMINAL DE DIAGNÓSTICO
+// ==========================================
+const debugEngine = {
+  logs: [], isOpen: false,
+  log(msg, type = 'info') {
+    const now = new Date();
+    const time = `[${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}]`;
+    const entry = { time, msg, type };
+    this.logs.push(entry);
+
+    if (type === 'error') console.error(`${time} ${msg}`);
+    else if (type === 'warn') console.warn(`${time} ${msg}`);
+    else console.log(`${time} ${msg}`);
+
+    this._renderLogEntry(entry);
+  },
+  _renderLogEntry(entry) {
+    const consoleDiv = document.getElementById('dbgLogConsole');
+    if(!consoleDiv) return;
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    const clr = entry.type === 'error' ? 'var(--danger)' : entry.type === 'success' ? 'var(--success)' : entry.type === 'warn' ? 'var(--warning)' : '#F8FAFC';
+    div.innerHTML = `<span class="log-time">${util.escape(entry.time)}</span><span style="color:${clr}">${util.escape(entry.msg)}</span>`;
+    consoleDiv.appendChild(div);
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+  },
+  updateStatus(html) { const s = document.getElementById('dbgStatus'); if(s) s.innerHTML = html; },
+  togglePanel() { this.isOpen = !this.isOpen; const p = document.getElementById('debugPanel'); if(p) p.classList.toggle('open', this.isOpen); }
+};
+
+// ==========================================
+// CONFIGURAÇÕES DA API GOOGLE SHEETS
+// ==========================================
+const config = {
+  sheetId: '1KAOCFX7_raD0YMhA3yPh8HjS1fF9TlJWp9TYGACCMCI',
+  apiKey: 'AIzaSyAdzZznAPDRlGLqbT-8AAVSKslZYfr7Jc0'
+};
+
+const util = {
+  escape(str) { return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); },
+  
+  normalizarData(dateStr) {
+    if (!dateStr) return "";
+    const str = String(dateStr).trim();
+    const match = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (match) {
+      const d = match[1].padStart(2, '0');
+      const m = match[2].padStart(2, '0');
+      const y = match[3];
+      return `${d}/${m}/${y}`;
+    }
+    return str.split(' ')[0];
+  }
+};
+
+const dashboardController = {
+  primeiraCarga: true,
+  codigosConhecidos: new Set(),
+  intervalId: null,
+  
+  init() {
+    networkMonitor.init();
+    
+    // Tenta solicitar permissão silenciosamente logo no início
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission().then(() => this.verificarStatusNotificacao());
+    }
+    this.verificarStatusNotificacao();
+    this.carregarDados(false);
+    
+    // Atualização Automática Silenciosa a cada 60 segundos
+    this.intervalId = setInterval(() => {
+      if(navigator.onLine) {
+        this.carregarDados(true);
+      } else {
+        debugEngine.log("Pausa no auto-refresh: Sistema Offline", "warn");
+      }
+    }, 60000);
+  },
+
+  verificarStatusNotificacao() {
+    const btn = document.getElementById('btnNotif');
+    if (Notification.permission === 'granted') {
+      btn.className = 'btn-notif active';
+      btn.innerHTML = '🔔 Notificações Ativas';
+    } else if (Notification.permission === 'denied') {
+      btn.style.background = 'var(--danger)';
+      btn.innerHTML = '🔕 Notificações Bloqueadas';
+    } else {
+      btn.className = 'btn-notif';
+      btn.innerHTML = '🔔 Ativar Notificações';
+    }
+  },
+
+  async solicitarNotificacoes() {
+    if (!("Notification" in window)) {
+      alert("Seu navegador não suporta notificações.");
+      return;
+    }
+    
+    if (Notification.permission === "granted") {
+      alert("As notificações já estão ativas!");
+      this.verificarStatusNotificacao();
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      this.verificarStatusNotificacao();
+      if (permission === 'granted') {
+        new Notification("Central de Faturamento", { body: "Notificações ativadas com sucesso!" });
+      } else {
+        alert("Você negou a permissão. Para ativar, clique no ícone de cadeado na barra de endereços.");
+      }
+    } catch (error) {
+      Notification.requestPermission(function(permission) {
+        dashboardController.verificarStatusNotificacao();
+      });
+    }
+  },
+
+  enviarNotificacao(carga) {
+    if (Notification.permission === 'granted') {
+      let resumoProdutos = carga.produtos.slice(0, 2).map(p => `Ped: ${p.pedido || 'N/A'} | ${p.nome} (Lote: ${p.lote})`).join('\n');
+      if(carga.produtos.length > 2) resumoProdutos += `\n...e mais ${carga.produtos.length - 2} itens.`;
+      
+      new Notification(`🧾 Liberado p/ Faturamento: ${carga.placa}`, {
+        body: `${resumoProdutos}`,
+        icon: 'https://cdn-icons-png.flaticon.com/512/2766/2766156.png'
+      });
+    }
+  },
+
+  async carregarDados(isSilent = false) {
+    if(!isSilent) this.toggleLoader(true);
+    debugEngine.log("Iniciando varredura da planilha de destino...", "info");
+    
+    try {
+      const date = new Date();
+      const mesesPT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      const abaMesAtual = `${mesesPT[date.getMonth()]}/${date.getFullYear()}`;
+      
+      const diaStr = String(date.getDate()).padStart(2, '0');
+      const mesStr = String(date.getMonth() + 1).padStart(2, '0');
+      const anoStr = date.getFullYear();
+      const dataHojeStr = `${diaStr}/${mesStr}/${anoStr}`;
+      
+      const horaAtualizacao = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      document.getElementById('abaAtualLabel').innerText = `Base: ${abaMesAtual.toUpperCase()} • Atualizado às ${horaAtualizacao}`;
+      // Mantém o texto exato mas com novo visual aplicado no CSS
+      document.getElementById('tituloDashboard').innerText = `Carregamentos - ${dataHojeStr}`;
+
+      debugEngine.log(`Data alvo (Hoje): ${dataHojeStr}`, "info");
+
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/'${encodeURIComponent(abaMesAtual)}'!A:AA?key=${config.apiKey}&valueRenderOption=FORMATTED_VALUE`;
+      
+      const res = await fetch(url);
+      if(!res.ok) {
+        debugEngine.log(`Erro HTTP ${res.status} ao ler a aba.`, "error");
+        throw new Error("Aba do mês não existe ou chave bloqueada.");
+      }
+      
+      const json = await res.json();
+      const linhas = json.values || [];
+      
+      debugEngine.log(`Sucesso: ${linhas.length} linhas lidas do Google Sheets.`, "success");
+
+      this.processarEAgrupar(linhas, dataHojeStr);
+
+    } catch (e) {
+      debugEngine.log(`Exceção detectada: ${e.message}`, "error");
+      document.getElementById('cardsContainer').innerHTML = `
+        <div class="empty-state">
+          <span>📉</span>
+          <p>Nenhum dado encontrado para o mês atual.</p>
+          <small>A aba do mês corrente pode ainda não ter sido criada no sistema principal.</small>
+        </div>`;
+      document.getElementById('contadorOperacoes').innerText = `Total de caminhões: 0`;
+    } finally {
+      if(!isSilent) this.toggleLoader(false);
+    }
+  },
+
+  processarEAgrupar(linhas, dataHojeStr) {
+    if(linhas.length <= 1) { 
+      document.getElementById('cardsContainer').innerHTML = `<div class="empty-state"><span>📭</span><p>Hoje por enquanto não temos carregamentos executados.</p></div>`;
+      document.getElementById('contadorOperacoes').innerText = `Total de caminhões: 0`;
+      debugEngine.log("Planilha só contém cabeçalho.", "warn");
+      return;
+    }
+
+    const agrupamento = {};
+    let linhasDoDia = 0;
+
+    for (let i = 1; i < linhas.length; i++) {
+      const row = linhas[i];
+      if (!row || !row[0]) continue; 
+      
+      const dataHoraRaw = row[0] || '';
+      const dataLinhaFormatada = util.normalizarData(dataHoraRaw);
+      
+      if (dataLinhaFormatada !== dataHojeStr) continue;
+      
+      linhasDoDia++;
+
+      const status    = row[1] || 'PENDENTE';
+      const acomp     = row[2] || '';
+      const cliente   = row[3] || '';
+      const pedido    = row[4] || 'S/ PEDIDO';
+      const placa     = row[5] || 'S/ PLACA';
+      const motorista = row[6] || '';
+      const produto   = row[7] || '';
+      const qtd       = row[8] || 0;
+      
+      // LÓGICA DO LOTE: sempre adicionar o número 0 na frente do lote, caso não seja vazio nem hífen
+      let loteRaw = row[9] || '';
+      loteRaw = String(loteRaw).trim();
+      const lote = (loteRaw && loteRaw !== '-') ? `0${loteRaw}` : '-';
+
+      const perda     = row[10] || '-'; 
+      
+      let codigo = row[26]; 
+      if (!codigo) {
+        const dataInvertida = dataLinhaFormatada.split('/').reverse().join('');
+        codigo = `${dataInvertida}-${placa.replace(/[^a-zA-Z0-9]/g, "").toUpperCase()}`;
+      }
+
+      if (!agrupamento[codigo]) {
+        agrupamento[codigo] = {
+          placa: placa, dataHora: dataHoraRaw,
+          motorista: motorista, acomp: acomp,
+          produtos: [],
+          pedidosSet: new Set(),
+          hasBloqueio: false
+        };
+      }
+
+      if(status.toUpperCase() === 'BLOQUEADO') {
+          agrupamento[codigo].hasBloqueio = true;
+      }
+      
+      agrupamento[codigo].pedidosSet.add(pedido);
+
+      agrupamento[codigo].produtos.push({
+        nome: produto, quantidade: qtd, lote: lote, perda: perda, 
+        pedido: pedido, cliente: cliente, status: status
+      });
+    }
+
+    debugEngine.log(`Processamento concluído. Linhas que correspondem a hoje (${dataHojeStr}): ${linhasDoDia}`, "info");
+
+    const codigosAtuais = Object.keys(agrupamento);
+    
+    if (!this.primeiraCarga) {
+      const codigosNovos = codigosAtuais.filter(cod => !this.codigosConhecidos.has(cod));
+      codigosNovos.forEach(novoCod => {
+        debugEngine.log(`NOVO CARREGAMENTO DETECTADO: ${novoCod}. Disparando notificação...`, "success");
+        this.enviarNotificacao(agrupamento[novoCod]);
+      });
+    }
+    
+    this.codigosConhecidos = new Set(codigosAtuais);
+    this.primeiraCarga = false;
+
+    this.renderizarCards(agrupamento);
+  },
+
+  renderizarCards(agrupamento) {
+    const container = document.getElementById('cardsContainer');
+    const carregamentos = Object.values(agrupamento).reverse();
+
+    if (carregamentos.length === 0) {
+      container.innerHTML = `<div class="empty-state"><span>📭</span><p>Hoje por enquanto não temos carregamentos executados.</p></div>`;
+      document.getElementById('contadorOperacoes').innerText = `Total de caminhões: 0`;
+      return;
+    }
+
+    let html = '';
+
+    carregamentos.forEach(carga => {
+      let isBlocked = carga.hasBloqueio;
+      let cardClassNames = isBlocked ? "card card-bloqueado" : "card";
+      let statusGeralBadge = isBlocked ? `<div class="badge badge-bloqueado">⚠️ COM BLOQUEIO</div>` : `<div class="badge badge-aprovado">✅ SEM BLOQUEIO</div>`;
+      let totalPedidos = carga.pedidosSet.size;
+
+      const produtosPorPedido = {};
+      carga.produtos.forEach(p => {
+         if(!produtosPorPedido[p.pedido]) produtosPorPedido[p.pedido] = [];
+         produtosPorPedido[p.pedido].push(p);
+      });
+
+      let gruposPedidosHTML = '';
+      
+      for (const [pedidoNum, prods] of Object.entries(produtosPorPedido)) {
+          
+          let produtosHTML = prods.map(p => {
+            let perdaFmt = parseFloat(String(p.perda).replace(',','.'));
+            let badgePerda = (!isNaN(perdaFmt) && perdaFmt > 0) ? `<span class="tag-perda">🚨 Avaria: ${perdaFmt} t</span>` : "";
+            
+            let qtdFmt = parseFloat(String(p.quantidade).replace(',','.'));
+            qtdFmt = isNaN(qtdFmt) ? p.quantidade : qtdFmt.toFixed(3);
+            
+            let prodStatusClass = p.status.toUpperCase() === 'BLOQUEADO' ? 'bloqueado' : 'aprovado';
+
+            return `
+              <div class="produto-item">
+                <div class="produto-nome">${util.escape(p.nome)}</div>
+                
+                <div class="destaques-grid">
+                  <div class="destaque-box destaque-lote">
+                    <span class="destaque-label">Nº do Lote</span>
+                    <span class="destaque-valor">${util.escape(p.lote)}</span>
+                  </div>
+                  <div class="destaque-box destaque-qtd">
+                    <span class="destaque-label">Qtd. Carregada</span>
+                    <span class="destaque-valor">${qtdFmt} t</span>
+                  </div>
+                </div>
+
+                <div class="produto-footer">
+                  <span class="status-linha ${prodStatusClass}">${util.escape(p.status)}</span>
+                  ${badgePerda}
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          let clienteNome = prods[0].cliente;
+
+          gruposPedidosHTML += `
+            <div class="pedido-group">
+                <div class="pedido-header">
+                    <span>🧾 Pedido: <strong>${util.escape(pedidoNum)}</strong></span>
+                </div>
+                <div style="padding: 10px 16px; font-size: 13px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: #fafafa;">
+                    🏢 Cliente: <strong>${util.escape(clienteNome)}</strong>
+                </div>
+                ${produtosHTML}
+            </div>
+          `;
+      }
+
+      html += `
+        <div class="${cardClassNames}">
+          <div class="card-header">
+            <div class="card-placa-wrapper">
+                <div class="card-placa">${util.escape(carga.placa)}</div>
+                <div class="badge badge-info">${totalPedidos} Pedido(s)</div>
+            </div>
+            ${statusGeralBadge}
+          </div>
+          
+          <div class="card-meta">
+            <div class="meta-item"><span>📅</span> <strong>${util.escape(carga.dataHora)}</strong></div>
+            <div class="meta-item"><span>👤</span> Motorista: <strong>${util.escape(carga.motorista)}</strong></div>
+            <div class="meta-item"><span>📋</span> Resp: <strong>${util.escape(carga.acomp)}</strong></div>
+          </div>
+
+          <div class="card-body">
+            ${gruposPedidosHTML}
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    document.getElementById('contadorOperacoes').innerText = `Total de caminhões: ${carregamentos.length}`;
+  },
+
+  toggleLoader(show) { 
+    const overlay = document.getElementById('loaderOverlay');
+    overlay.style.display = show ? 'flex' : 'none'; 
+    if(!show) overlay.style.opacity = '1';
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  dashboardController.init();
+});
+</script>
+</body>
+</html>
